@@ -97,6 +97,9 @@ namespace LiveSplit.ASL
 
         private Methods _methods;
 
+        private Stopwatch _tryConnectStopwatch;
+        private const int TRY_CONNECT_INTERVAL = 5000;
+
         public ASLScript(Methods methods, Dictionary<string, List<ASLState>> states)
         {
             _methods = methods;
@@ -113,6 +116,8 @@ namespace LiveSplit.ASL
                 _settings.AddBasicSetting("reset");
 
             _uses_game_time = !_methods.isLoading.IsEmpty || !_methods.gameTime.IsEmpty;
+
+            _tryConnectStopwatch = new Stopwatch();
         }
 
         // Update the script
@@ -122,7 +127,18 @@ namespace LiveSplit.ASL
             {
                 if (_timer == null)
                     _timer = new TimerModel() { CurrentState = state };
-                TryConnect(state);
+                
+                if (!_tryConnectStopwatch.IsRunning || _tryConnectStopwatch.ElapsedMilliseconds > TRY_CONNECT_INTERVAL)
+                {
+                    _tryConnectStopwatch.Start();
+                    TryConnect(state);
+                    _tryConnectStopwatch.Restart();
+                }
+
+                if (_game != null)
+                {
+                    _tryConnectStopwatch.Reset();
+                }
             }
             else if (_game.HasExited)
             {

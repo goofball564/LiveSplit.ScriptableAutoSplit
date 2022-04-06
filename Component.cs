@@ -1,18 +1,19 @@
 using System;
-using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
 using LiveSplit.ASL;
 using LiveSplit.Model;
 using LiveSplit.Options;
+using HighPrecisionTimer;
 
 namespace LiveSplit.UI.Components
 {
     public class ASLComponent : LogicComponent
     {
-        public override string ComponentName => "Scriptable Auto Splitter";
+        public override string ComponentName => "Scriptable Auto Splitter (High Precision)";
 
         // public so other components (ASLVarViewer) can access
         public ASLScript Script { get; private set; }
@@ -22,12 +23,15 @@ namespace LiveSplit.UI.Components
         private bool _do_reload;
         private string _old_script_path;
 
-        private Timer _update_timer;
+        private MultimediaTimer _update_timer;
         private FileSystemWatcher _fs_watcher;
 
         private ComponentSettings _settings;
 
         private LiveSplitState _state;
+
+        private readonly SynchronizationContext _mainThreadSynchronizationContext;
+        private readonly object _lockObject;
 
         public ASLComponent(LiveSplitState state)
         {
@@ -46,12 +50,12 @@ namespace LiveSplit.UI.Components
             _fs_watcher.Changed += handler;
             _fs_watcher.Renamed += handler;
 
-            // -try- to run a little faster than 60hz
-            // note: Timer isn't very reliable and quite often takes ~30ms
-            // we need to switch to threading
-            _update_timer = new Timer() { Interval = 15 };
-            _update_timer.Tick += (sender, args) => UpdateScript();
-            _update_timer.Enabled = true;
+            _mainThreadSynchronizationContext = SynchronizationContext.Current;
+            _lockObject = new object();
+
+            _update_timer = new MultimediaTimer() { Interval = 15, Resolution = 0 };
+            _update_timer.Elapsed += (sender, args) => TimerCallbackFunction();
+            _update_timer.Start();
         }
 
         public ASLComponent(LiveSplitState state, string script_path)
@@ -95,14 +99,23 @@ namespace LiveSplit.UI.Components
         public override void Update(IInvalidator invalidator, LiveSplitState state, float width, float height,
             LayoutMode mode) { }
 
+        private void TimerCallbackFunction()
+        {
+            if (Monitor.TryEnter(_lockObject))
+            {
+                try
+                {
+                    _mainThreadSynchronizationContext.Send((o) => UpdateScript(), null);
+                }
+                finally
+                {
+                    Monitor.Exit(_lockObject);
+                }
+            }
+        }
 
         private void UpdateScript()
         {
-            // Disable timer, to wait for execution of this iteration to
-            // finish. This can be useful if blocking operations like
-            // showing a message window are used.
-            _update_timer.Enabled = false;
-
             // this is ugly, fix eventually!
             if (_settings.ScriptPath != _old_script_path || _do_reload)
             {
@@ -143,8 +156,6 @@ namespace LiveSplit.UI.Components
                     Log.Error(ex);
                 }
             }
-
-            _update_timer.Enabled = true;
         }
 
         private void LoadScript()
@@ -158,8 +169,11 @@ namespace LiveSplit.UI.Components
             // New script
             Script = ASLParser.Parse(File.ReadAllText(_settings.ScriptPath));
 
-            Script.RefreshRateChanged += (sender, rate) => _update_timer.Interval = (int)Math.Round(1000 / rate);
-            _update_timer.Interval = (int)Math.Round(1000 / Script.RefreshRate);
+            Script.RefreshRateChanged += (sender, rate) => { _update_timer.Interval = Math.Max((int)Math.Round(1000 / rate), 1); _update_timer.Stop(); _update_timer.Start(); } ;
+            
+            _update_timer.Interval = Math.Max((int)Math.Round(1000 / Script.RefreshRate), 1);
+            _update_timer.Stop();
+            _update_timer.Start();
 
             Script.GameVersionChanged += (sender, version) => _settings.SetGameVersion(version);
             _settings.SetGameVersion(null);

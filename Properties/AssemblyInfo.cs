@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 // Allgemeine Informationen über eine Assembly werden über die folgenden 
 // Attribute gesteuert. Ändern Sie diese Attributwerte, um die Informationen zu ändern,
 // die mit einer Assembly verknüpft sind.
-[assembly: AssemblyTitle("LiveSplit.ScriptableAutoSplit")]
+[assembly: AssemblyTitle("LiveSplit.ScriptableAutoSplitHighPrecision")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("LiveSplit.ScriptableAutoSplit")]
+[assembly: AssemblyProduct("LiveSplit.ScriptableAutoSplitHighPrecision")]
 [assembly: AssemblyCopyright("Copyright ©  2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -17,9 +17,6 @@ using System.Runtime.InteropServices;
 // für COM-Komponenten.  Wenn Sie auf einen Typ in dieser Assembly von 
 // COM zugreifen müssen, legen Sie das ComVisible-Attribut für diesen Typ auf "true" fest.
 [assembly: ComVisible(false)]
-
-// Die folgende GUID bestimmt die ID der Typbibliothek, wenn dieses Projekt für COM verfügbar gemacht wird
-[assembly: Guid("7b372663-e0c9-4f31-bf92-2fbffb2425d8")]
 
 // Versionsinformationen für eine Assembly bestehen aus den folgenden vier Werten:
 //

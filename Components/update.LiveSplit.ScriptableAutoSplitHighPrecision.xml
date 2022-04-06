@@ -1,0 +1,12 @@
+<updates>
+  <update version="1.8.17">
+    <files>
+      <file path="Components/LiveSplit.ScriptableAutoSplitHighPrecision.dll" status="changed"/>
+    </files>
+    <changelog>
+      <change>
+        Initial release.
+      </change>
+    </changelog>
+  </update>
+</updates>
